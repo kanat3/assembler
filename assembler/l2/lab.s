@@ -1,17 +1,17 @@
 	.arch armv8-a
 //	Sorting columns of matrix by min elements
-//  Odd-even sort
+//	Odd-even sort
 	.data
 	.align	3
 n:
-    .word 4
+	.word 4
 m:
-    .word 6
+	.word 6
 matrix:
 	.quad	4, 6, 1, 8, 2, -12
 	.quad	1, 2, 3, 4, 5, 53
 	.quad	0, 8, 3, -1, -1, 0
-    .quad   0, 3, -33, -4, 5, 0
+	.quad   0, 3, -33, -4, 5, 0
 maxs:
 	.skip 40 // m*8-bit
 	.text
