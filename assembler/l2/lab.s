@@ -1,18 +1,19 @@
 	.arch armv8-a
 //	Sorting columns of matrix by min elements
+//  Odd-even sort
 	.data
 	.align	3
 n:
-	.word	4
+    .word 4
 m:
-	.word	6
+    .word 6
 matrix:
 	.quad	4, 6, 1, 8, 2, -12
 	.quad	1, 2, 3, 4, 5, 53
-	.quad	0, -7, 3, -1, -1, 0
-    .quad   0, 0, -33, -4, 5, 0
+	.quad	0, 8, 3, -1, -1, 0
+    .quad   0, 3, -33, -4, 5, 0
 maxs:
-	.skip	48
+    .skip 40 // m*8-bit
 	.text
 	.align	2
 	.global _start
@@ -23,7 +24,7 @@ _start:
 	adr	x2, m
 	ldr	w1, [x2]
 	adr	x2, matrix
-	adr	x3, maxs
+	adr	x3, maxs // array of min columns elements
 	mov	x4, #0
 L0:
 	cmp	x4, x1
@@ -50,7 +51,7 @@ L2:
 L3:
 	sub	x4, x1, #1
 	mov	x5, #0 // sorted - 1, 0 - no
-    mov x11, #0 // index
+    mov x11, #1 // index
     mov x12, #1
 L4:
     mov x6, x11
@@ -61,12 +62,16 @@ L4:
     b L5
 0:
     mov x11, #1
+    mov x5, x12
+    mov x12, #1
     b L4
 check:
     tst x11, #1
     beq 0b
     mov x11, #0
-    b L4
+    mov x6, x11
+    mov x7, x11
+    ldr x9, [x3, x6, lsl #3]
 L5:
 	add	x6, x6, #1
 	cmp	x6, x4
@@ -74,7 +79,12 @@ L5:
     mov x5, #1
 	ldr	x8, [x3, x6, lsl #3]
 	cmp	x8, x9
+.ifdef sort
 	bge	0f
+.endif
+.ifdef rsort
+    ble 0f
+.endif
 	mov	x7, x6
 	mov	x9, x8
     mov x5, #0 // yes swap
@@ -84,7 +94,8 @@ L5:
     add x11, x11, #2
     mov x6, x11
     mov x7, x11
-    ldr x9,[x3, x6, lsl #3]
+    mov x5, x12
+    ldr x9, [x3, x6, lsl #3]
     b L5
 L6:
 	ldr	x8, [x3, x11, lsl #3]
