@@ -28,7 +28,7 @@ _start:
 	ldr w4, [x0]
 	adr x0, e
 	ldr w5, [x0]
-	umull x6, w4, w1 // d*a
+    umull x6, w4, w1 // d*a
 	madd x7, x2, x3, x1 // a+b*c
 	cbz x7, BAD // if a+b*c == 0 exit
 	udiv x6, x6, x7 // d*a/(a+b*c)

@@ -43,12 +43,10 @@ _start:
 	mov	x0, #1
 	b	3f
 2:
-	//ldr	x0, [sp, #16]
     adr x1, filename
     ldr x2, [sp, #16]
     str x2, [x1] // save filename
     mov x0, #-100
-    //strb    wzr, [x1, x2]
     ldr x1, filename
     mov x2, #0
     mov x8, #56
@@ -60,7 +58,7 @@ _start:
     bl	work
     cbnz x0, 3f
     adr x0, file_descriptor
-    ldr x0,[x0]
+    ldr x0, [x0]
     mov x8, #57
     svc #0
     mov x0, #0
@@ -78,15 +76,15 @@ _start:
 	.size	_start, .-_start
 	.type	work, %function
     .data
-vowels:
-    .asciz  "0123456789"
-	.equ	fd, 16
+symbols:
+    .asciz "0123456789"
+    .equ	fd, 16 // file descriptor
 	.equ	tmp, 24
-    .equ    counter, 32
-    .equ    letter, 40
-    .equ    word, 44
+    .equ    counter, 32 // counter of words
+    .equ    letter, 40 // if number
+    .equ    word, 44 // in word or not
     .equ    input, 48
-    .equ    buffer_size, 5
+    .equ    buffer_size, 3
     .text
     .align 2
 work:
@@ -98,7 +96,6 @@ work:
     mov x29, sp
     str x0, [x29, fd]
     str xzr, [x29, counter]
-    str xzr, [x29, letter]
 0:
     ldr x0, [x29, fd]
     add x1, x29, input
@@ -111,6 +108,7 @@ work:
     add x0, x0, input
     ldr w1, [x29, word]
     add x3, x29, input
+    add x11, x29, input
     mov x16, buffer_size
     add x16, x16, input
     add x4, x29, x16
@@ -118,10 +116,10 @@ work:
     ldr w6, [x29, letter]
     mov w7, ' '
 1:
-    cmp x3,x0
+    cmp x3, x0
     bge 8f
     ldrb w2, [x3], #1
-    cbz w2,2f
+    cbz w2, 2f
     cmp w2, '\n'
     beq 2f
     cmp w2, ' '
@@ -140,16 +138,22 @@ work:
     mov w1, #0
     b 1b
 4:
-    mov w6, #0
-    adr x9, vowels
+    mov w6, #1
+    adr x9, symbols
+word_loop:
+    ldrb w12, [x11], #1
+    cmp w12,'\t'
+    cmp w12, '\n'
+    cmp w12, ' '
+    beq 6f
 loop:
-    ldrb w10,[x9], #1
-    cbz w10, 6f
-    cmp w2, w10
-    beq 5f
+    ldrb w10, [x9], #1
+    cbz w10, word_loop
+    cmp w12, w10
+    bne 5f // symbol isnt a number
     b loop
 5:
-    mov w6, #1
+    mov w6, #0
 6:
     cmp w6, #1
     mov w1, #1
@@ -162,8 +166,8 @@ loop:
     strb w2, [x4], #1
     b 1b
 8:
-    str w1, [x29,word]
-    str x5, [x29,counter]
+    str w1, [x29, word]
+    str x5, [x29, counter]
     str w6, [x29, letter]
     mov x16, buffer_size
     add x16, x16, input
@@ -171,7 +175,7 @@ loop:
     sub x2, x4, x1
     cbz x2, 0b
     str x2, [x29, tmp]
-9:
+9:  //write
     mov x0, #1
     mov x8, #64
     svc #0
