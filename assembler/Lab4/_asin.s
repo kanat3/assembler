@@ -130,32 +130,34 @@ L8:
     ret
     .global series_member
     .type   series_member, %function
+    .equ    x, 40
+    .equ    n, 32
 series_member:
     stp x29, x30, [sp, -48]!
     mov x29, sp
     stp d8, d9, [sp, 16]
-    str d0, [x29, 40]
-    str x0, [x29, 32]
-    ldr x0, [x29, 32]
+    str d0, [x29, x]
+    str x0, [x29, n]
+    ldr x0, [x29, n]
     lsl x0, x0, #1
     add x0, x0, #1
-    ldr d0, [x29, 40]
+    ldr d0, [x29, x]
     bl power
     fmov d8, d0
-    ldr x0, [x29, 32]
+    ldr x0, [x29, n]
     lsl x0, x0, #1
     bl factorial
     fmul d8, d8, d0
-    ldr x0, [x29, 32]
+    ldr x0, [x29, n]
     fmov d0, #4.0
     bl power
     fmov d9, d0
-    ldr x0, [x29, 32]
+    ldr x0, [x29, n]
     bl factorial
     mov x0, #2
     bl power
     fmul d1, d9, d0
-    ldr x0, [x29, 32]
+    ldr x0, [x29, n]
     lsl x0, x0, #1
     add x0, x0, #1
     scvtf d0, x0
@@ -166,59 +168,63 @@ series_member:
     ret
     .global my_asin
     .type   my_asin, %function
-
+    .equ    x, 24
+    .equ    n, 56
+    .equ    sum, 48
+    .equ    acc, 16
+    .equ    prevsum, 40
 my_asin:
     stp x29, x30, [sp, -64]!
     mov x29, sp
-    str d0, [x29, 24]
-    str d1, [x29, 16]
+    str d0, [x29, x]
+    str d1, [x29, acc]
     mov x0, #1
-    str x0, [x29, 56]
-    ldr d0, [x29, 24]
-    str d0, [x29, 48]
-    str xzr, [x29, 40]
+    str x0, [x29, n]
+    ldr d0, [x29, x]
+    str d0, [x29, sum]
+    str xzr, [x29, prevsum]
     adr x0, mes7
-    ldr d0, [x29, 48]
+    ldr d0, [x29, sum]
     bl printf
-    ldr d0, [x29, 48]
-    str d0, [x29, 40]
-    ldr x0, [x29, 56]
-    ldr d0, [x29, 24]
+    ldr d0, [x29, sum]
+    str d0, [x29, prevsum]
+    ldr x0, [x29, n]
+    ldr d0, [x29, x]
     bl series_member
     fmov d1, d0
-    ldr d0, [x29, 48]
+    ldr d0, [x29, sum]
     fadd d0, d0, d1
-    str d0, [x29, 48]
-    ldr x0, [x29, 56]
+    str d0, [x29, sum]
+    ldr x0, [x29, n]
     add x0, x0, #1
-    str x0, [x29, 56]
+    str x0, [x29, n]
 L13:
-    ldr d1, [x29, 48]
-    ldr d0, [x29, 40]
+    ldr d1, [x29, sum]
+    ldr d0, [x29, prevsum]
     fsub d1, d1, d0
-    ldr d0, [x29, 16]
+    ldr d0, [x29, acc]
     fcmpe d1, d0 // sum - prevsum >= acc
     blt L12
-    ldr d0, [x29, 48]
-    str d0, [x29, 40]
-    ldr x0, [x29, 56]
-    ldr d0, [x29, 24]
+    ldr d0, [x29, sum]
+    str d0, [x29, prevsum]
+    ldr x0, [x29, n]
+    ldr d0, [x29, x]
     bl series_member
     fmov d1, d0
-    ldr d0, [x29, 48]
+    ldr d0, [x29, sum]
     fadd d0, d0, d1
-    str d0, [x29, 48]
-    ldr x0, [x29, 56]
+    str d0, [x29, sum]
+    ldr x0, [x29, n]
     sub x1, x0, #1
     adr x0, mes8
-    ldr d0, [x29, 48]
+    ldr d0, [x29, sum]
     bl printf
-    ldr x0, [x29, 56]
+    ldr x0, [x29, n]
     add x0, x0, #1
-    str x0, [x29, 56]
+    str x0, [x29, n]
     b L13 // while
 L12:
-    ldr d0, [x29, 48]
+    ldr d0, [x29, sum]
     ldp x29, x30, [sp], 64
     ret
 
