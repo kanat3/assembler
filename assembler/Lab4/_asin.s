@@ -17,7 +17,7 @@ mes4:
 mode:
         .string "w"
 filename:
-        .string "1_asin_logfile.txt"
+        .string "_asin_logfile.txt"
 outformat1:
         .string "Series: %.0lf"
 outformat2:
