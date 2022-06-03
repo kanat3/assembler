@@ -17,11 +17,15 @@ mes4:
 mode:
         .string "w"
 filename:
-        .string "_asin_logfile.txt"
+        .string "1_asin_logfile.txt"
 outformat1:
         .string "Series: %.0lf"
 outformat2:
         .string "       --->    %.17f\n"
+error1:
+	.string "The argument must not exceed the value of 1 modulo\n"
+error2:
+	.string "The accuracy should be in the range from 0 to 1\n"
         .text
         .align 2
         .global main
@@ -53,7 +57,9 @@ main:
         fmov    d0, #-1.0
         fcmpe   d1, d0
         bpl     L23
-L15:
+L15:	
+	adr	x0, error1
+	bl	printf
         mov     w0, #-1
         b       L22
 L23:
@@ -65,6 +71,8 @@ L23:
         fcmpe   d1, d0
         blt     L24
 L19:
+	adr	x0, error2
+	bl	printf
         mov     w0, #-1
         b       L22
 L24:
