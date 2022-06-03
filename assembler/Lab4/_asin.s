@@ -23,9 +23,9 @@ outformat1:
 outformat2:
         .string "       --->    %.17f\n"
 error1:
-	.string "The argument must not exceed the value of 1 modulo\n"
+        .string "The argument must not exceed the value of 1 modulo\n"
 error2:
-	.string "The accuracy should be in the range from 0 to 1\n"
+        .string "The accuracy should be in the range from 0 to 1\n"
         .text
         .align 2
         .global main
@@ -52,30 +52,30 @@ main:
         ldr     d1, [x29, x]
         fmov    d0, #1.0
         fcmpe   d1, d0
-        bgt     L15
+        bgt     err1
         ldr     d1, [x29, x]
         fmov    d0, #-1.0
         fcmpe   d1, d0
-        bpl     L23
-L15:	
-	adr	x0, error1
-	bl	printf
+        bpl     L1
+err1:
+        adr x0, error1
+        bl  printf
         mov     w0, #-1
-        b       L22
-L23:
+        b       L3
+L1:
         ldr     d0, [x29, acc]
         fcmpe   d0, #0.0
-        bls     L19
+        bls     err2
         ldr     d1, [x29, acc]
         fmov    d0, #1.0
         fcmpe   d1, d0
-        blt     L24
-L19:
-	adr	x0, error2
-	bl	printf
+        blt     L2
+err2:
+        adr x0, error2
+        bl  printf
         mov     w0, #-1
-        b       L22
-L24:
+        b       L3
+L2:
         ldr     d0, [x29, x]
         ldr     d1, [x29, acc]
         bl      my_asin
@@ -94,7 +94,7 @@ L24:
         ldr     d0, [x29, acc]
         bl      printf
         mov     w0, 0
-L22:
+L3:
         ldp     x29, x30, [sp], 48
         ret
         .size   main, .-main
@@ -194,13 +194,13 @@ L4:
         ldr     d0, [x29, now]
         fadd    d0, d1, d0
         str     d0, [x29, sum]
-L8:
+L5:
         ldr     d1, [x29, prev]
         ldr     d0, [x29, now]
         fsub    d1, d1, d0
         ldr     d0, [x29, acc]
         fcmpe   d1, d0
-        blt     L13
+        blt     L6
         ldr     d0, [x29, now]
         str     d0, [x29, prev]
         ldr     d1, [x29, n]
@@ -226,18 +226,18 @@ L8:
         ldr     d0, [x29, now]
         fadd    d0, d1, d0
         str     d0, [x29, sum]
-        b       L8
-L13:
+        b       L5
+L6:
         ldr     w0, [x29, is_neg]
         cmp     w0, 1
-        bne     L9
+        bne     L7
         ldr     d0, [x29, sum]
         fneg    d0, d0
-        b       L10
-L9:
+        b       L8
+L7:
         ldr     x0, [x29, file_pointer]
         bl      fclose
         ldr     d0, [x29, sum]
-L10:
+L8:
         ldp     x29, x30, [sp], 80
         ret
