@@ -138,20 +138,22 @@ smile:
         mov     x4, x3
 L0:
         ldrb    w0, [x1], #1
-        cbz     w0, L9
-        cmp     w0, ' '
-        beq     L0
+        cbz     w0, L9 // end of the str
+        cmp     w0, ' ' // end of the word
+        beq     L0 // skip spaces
         cmp     w0, '\t'
         beq     L0
         cmp     x4, x3
         beq     L1
+        // add space in new str
         mov     w0, ' '
         strb    w0, [x3], #1
         b       L1
 L1:
-        sub     x2, x1, #1
-        mov     x12, #0
+        sub     x2, x1, #1 // x2 beggining of the word
+        mov     x12, #0 // word char counter
 L2:
+        // read next symbol in word
         ldrb    w0, [x1], #1
         add     x12, x12, #1
         cbz     w0, L3
@@ -160,15 +162,22 @@ L2:
         cmp     w0, '\t'
         bne     L2
 L3:
+        // x5 - next symbol after the word
         sub     x5, x1, #1
         sub     x12, x12, #1
         mov     w21, #0
 L4:
-        cmp     w21, w20
+        adr     x14, N
+        ldrb    w20, [x14]
+        mov     w15, '0'
+        sub     w20, w20, w15
+        sub     x20, x12, x20
+        add     x20, x20, #1
+        cmp     w21, w20 // compare with N
         bge     L7
         add     w21, w21, #1
         mov     x6, x5
-        ldrb    w7, [x6, #-1]!
+        ldrb    w7, [x6, #-1]! // remember last char
         mov     x10, x12
 L5:
         cmp     x10, #0
@@ -187,6 +196,7 @@ L7:
         sub     x1, x1, #1
         mov     x10, #0
 L8:
+        //write new word to new str
         cmp     x10, x12
         bge     L0
         ldrb    w0, [x2, x10, lsl #0]
