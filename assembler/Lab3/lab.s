@@ -7,7 +7,7 @@ mes1:
         .string "Filename for result: "
         .equ    len1, .-mes1
 mes2:
-        .string "Enter string: "
+        .string "Enter string (Use Ctrl+D to exit) : "
         .equ    len2, .-mes2
 mes3:
         .string "File exists. Rewrite (y/n)? "
@@ -15,14 +15,22 @@ mes3:
 mes_err:
         .string "Error............\n"
         .equ    len_err, .-mes_err
+errmes1:
+        .string "Usage: "
+        .equ    errlen1, .-errmes1
+errmes2:
+        .string " filename\n"
+        .equ    errlen2, .-errmes2
 choice:
         .skip   3
 N:
         .skip   3
 str:
         .skip   1024
+        .align  3
 filename:
         .skip   1024
+        .align  3
 mes_res:
         .ascii  "'"
 newstr:
@@ -35,6 +43,37 @@ fd:
         .global _start
         .type   _start, %function
 _start:
+
+//************
+        ldr     x0, [sp]
+        cmp     x0, #2
+        beq     2f
+        mov     x0, #2
+        adr     x1, errmes1
+        mov     x2, errlen1
+        mov     x8, #64
+        svc     #0
+        mov     x0, #2
+        ldr     x1, [sp, #8]
+        mov     x2, #0
+0:
+        ldrb    w3, [x1, x2]
+        cbz     w3, 1f
+        add     x2, x2, #1
+        b       0b
+1:
+        mov     x8, #64
+        svc     #0
+        mov     x0, #2
+        adr     x1, errmes2
+        mov     x2, errlen2
+        mov     x8, #64
+        svc     #0
+        mov     x0, #-1
+        b       bad_exit
+2:
+
+
         mov     x0, #1
         adr     x1, mes_N
         mov     x2, len_N
@@ -55,22 +94,11 @@ _start:
         ldrb    w20, [x1]
         mov     w10, '0'
         sub     w20, w20, w10
-        /* read filename */
-        mov     x0, #1
-        adr     x1, mes1
-        mov     x2, len1
-        mov     x8, #64
-        svc     #0
-        mov     x0, #0
-        adr     x1, filename
-        mov     x2, #1024
-        mov     x8, #63
-        svc     #0
-        cmp     x0, #1
+        cmp     w20, #0
         ble     bad_exit
-        sub     x2, x0, #1
+
         mov     x0, #-100
-        adr     x1, filename
+        ldr	x1, [sp, #16]
         strb    wzr, [x1, x2]
         mov     x2, #0xc1
         mov     x3, #0600
@@ -107,7 +135,7 @@ read_answer:
 answer_yes:
         /* rewrite file */
         mov     x0, #-100
-        adr     x1, filename
+        ldr	x1, [sp, #16]
         mov     x2, #0x201
         mov     x8, #56
         svc     #0
