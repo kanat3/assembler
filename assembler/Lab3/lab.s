@@ -12,9 +12,6 @@ mes2:
 mes3:
         .string "File exists. Rewrite (y/n)? "
         .equ    len3, .-mes3
-mes_err:
-        .string "Error............\n"
-        .equ    len_err, .-mes_err
 errmes1:
         .string "Usage: "
         .equ    errlen1, .-errmes1
@@ -26,9 +23,6 @@ choice:
 N:
         .skip   3
 str:
-        .skip   1024
-        .align  3
-filename:
         .skip   1024
         .align  3
 mes_res:
@@ -43,8 +37,6 @@ fd:
         .global _start
         .type   _start, %function
 _start:
-
-//************
         ldr     x0, [sp]
         cmp     x0, #2
         beq     2f
@@ -72,23 +64,26 @@ _start:
         mov     x0, #-1
         b       bad_exit
 2:
-
-
         mov     x0, #1
         adr     x1, mes_N
         mov     x2, len_N
         mov     x8, #64
         svc     #0
-        /* read N */
+
         mov     x0, #0
         adr     x1, N
         mov     x2, #1023
         mov     x8, #63
         svc     #0
         cmp     x0, #1
-        ble     exit
+        ble     E1
+        b       E2
+E1:
+        bl      writeerr
+        b       bad_exit
+E2:
+
         adr     x1, N
-        /* delete \n */
         sub     x0, x0, #1
         strb    wzr, [x1, x0]
         ldrb    w20, [x1]
@@ -98,32 +93,38 @@ _start:
         ble     bad_exit
 
         mov     x0, #-100
-        ldr	x1, [sp, #16]
+        ldr     x1, [sp, #16]
         strb    wzr, [x1, x2]
         mov     x2, #0xc1
         mov     x3, #0600
         mov     x8, #56
         svc     #0
+
         cmp     x0, #0
         bge     save_fd
         cmp     x0, #-17
-        bne     bad_exit
-        /* rewrite? */
+        bne     E3
+        b       E4
+E3:
+        bl      writeerr
+        b       bad_exit
+E4:
         mov     x0, #1
         adr     x1, mes3
         mov     x2, len3
         mov     x8, #64
         svc     #0
+
         mov     x0, #0
         adr     x1, choice
         mov     x2, #3
         mov     x8, #63
         svc     #0
+
         cmp     x0, #2
         beq     read_answer
         b       bad_exit
 read_answer:
-        /* input */
         adr     x1, choice
         ldrb    w0, [x1]
         cmp     w0, 'Y'
@@ -133,9 +134,8 @@ read_answer:
         mov     x0, #-17
         b       exit
 answer_yes:
-        /* rewrite file */
         mov     x0, #-100
-        ldr	x1, [sp, #16]
+        ldr     x1, [sp, #16]
         mov     x2, #0x201
         mov     x8, #56
         svc     #0
@@ -144,21 +144,21 @@ answer_yes:
 save_fd:
         adr     x1, fd
         str     x0, [x1]
-smile:
-        /* ask for string */
+work:
         mov     x0, #1
         adr     x1, mes2
         mov     x2, len2
         mov     x8, #64
         svc     #0
-        /* input string */
+
         mov     x0, #0
         adr     x1, str
         mov     x2, #1023
         mov     x8, #63
         svc     #0
+
         cmp     x0, #0
-        ble L11
+        ble     L11
         adr     x1, str
         sub     x0, x0, #1
         strb    wzr, [x1, x0]
@@ -166,22 +166,20 @@ smile:
         mov     x4, x3
 L0:
         ldrb    w0, [x1], #1
-        cbz     w0, L9 // end of the str
-        cmp     w0, ' ' // end of the word
-        beq     L0 // skip spaces
+        cbz     w0, L9
+        cmp     w0, ' '
+        beq     L0
         cmp     w0, '\t'
         beq     L0
         cmp     x4, x3
         beq     L1
-        // add space in new str
         mov     w0, ' '
         strb    w0, [x3], #1
         b       L1
 L1:
-        sub     x2, x1, #1 // x2 beggining of the word
-        mov     x12, #0 // word char counter
+        sub     x2, x1, #1
+        mov     x12, #0
 L2:
-        // read next symbol in word
         ldrb    w0, [x1], #1
         add     x12, x12, #1
         cbz     w0, L3
@@ -190,7 +188,6 @@ L2:
         cmp     w0, '\t'
         bne     L2
 L3:
-        // x5 - next symbol after the word
         sub     x5, x1, #1
         sub     x12, x12, #1
         mov     w21, #0
@@ -199,13 +196,20 @@ L4:
         ldrb    w20, [x14]
         mov     w15, '0'
         sub     w20, w20, w15
-        sub     x20, x12, x20
-        add     x20, x20, #1
-        cmp     w21, w20 // compare with N
+	mov	x16, x12
+	add	x16, x16, #1
+        sub     x20, x16, x20
+        cmp     x20, #0
+        blt     N1
+        b       N2
+N1:
+        neg     x20, x20
+N2:
+        cmp     w21, w20
         bge     L7
         add     w21, w21, #1
         mov     x6, x5
-        ldrb    w7, [x6, #-1]! // remember last char
+        ldrb    w7, [x6, #-1]!
         mov     x10, x12
 L5:
         cmp     x10, #0
@@ -224,7 +228,6 @@ L7:
         sub     x1, x1, #1
         mov     x10, #0
 L8:
-        //write new word to new str
         cmp     x10, x12
         bge     L0
         ldrb    w0, [x2, x10, lsl #0]
@@ -244,7 +247,7 @@ output:
         sub     x2, x3, x1
         mov     x8, #64
         svc     #0
-        b       smile
+        b       work
 L11:
         adr     x0, fd
         ldr     x0, [x0]
@@ -252,9 +255,35 @@ L11:
         svc     #0
         b       exit
 bad_exit:
-        /* add */
+        mov     x0, #-1
 exit:
         mov     x0, #0
         mov     x8, #93
         svc     #0
         .size   _start, .-_start
+
+        .type   writeerr, %function
+        .data
+permission:
+        .string "Permission denied\n"
+        .equ    permissionlen, .-permission
+unknown:
+        .string "Just error....\n"
+        .equ    unknownlen, .-unknown
+        .text
+        .align  2
+writeerr:
+        cmp     x0, #-13
+        bne     1f
+        adr     x1, permission
+        mov     x2, permissionlen
+        b       2f
+1:
+        adr     x1, unknown
+        mov     x2, unknownlen
+2:
+        mov     x0, #2
+        mov     x8, #64
+        svc     #0
+        ret
+        .size   writeerr, .-writeerr
