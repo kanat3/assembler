@@ -18,6 +18,9 @@ errmes1:
 errmes2:
         .string " filename\n"
         .equ    errlen2, .-errmes2
+newline:
+        .string "\n"
+        .equ    len_nl, .-newline
 choice:
         .skip   3
 N:
@@ -82,14 +85,13 @@ E1:
         bl      writeerr
         b       bad_exit
 E2:
-
         adr     x1, N
         sub     x0, x0, #1
         strb    wzr, [x1, x0]
         ldrb    w20, [x1]
         mov     w10, '0'
         sub     w20, w20, w10
-        cmp     w20, #0
+        cmp     w20, #0 // N < 0 ->in err
         ble     bad_exit
 
         mov     x0, #-100
@@ -188,40 +190,28 @@ L2:
         cmp     w0, '\t'
         bne     L2
 L3:
-        sub     x5, x1, #1
+        //sub     x5, x1, #1
         sub     x12, x12, #1
         mov     w21, #0
 L4:
-        adr     x14, N
-        ldrb    w20, [x14]
-        mov     w15, '0'
-        sub     w20, w20, w15
-	mov	x16, x12
-	add	x16, x16, #1
-        sub     x20, x16, x20
-        cmp     x20, #0
-        blt     N1
-        b       N2
-N1:
-        neg     x20, x20
-N2:
         cmp     w21, w20
         bge     L7
         add     w21, w21, #1
-        mov     x6, x5
-        ldrb    w7, [x6, #-1]!
-        mov     x10, x12
+        //mov     x6, x5
+        mov     x6, x2
+        ldrb    w7, [x6, #0]! //-1
+        mov     x10, #0 //x12
 L5:
-        cmp     x10, #0
-        ble     L6
-        ldrb    w0, [x6, #-1]!
+        cmp     x10, x12 // index < len
+        bgt     L6
+        ldrb    w0, [x6, #1]!
         strb    w0, [x2, x10, lsl #0]
-        sub     x10, x10, #1
-        cmp     x6, x2
-        bgt     L5
-        b       L6
+        add     x10, x10, #1
+        cmp     x10, x12
+        bgt     L6
+        b       L5
 L6:
-        strb    w7, [x2]
+        strb    w7, [x2, x12, lsl #0]
         b L4
 L7:
         add     x12, x12, #1
@@ -257,6 +247,12 @@ L11:
 bad_exit:
         mov     x0, #-1
 exit:
+        mov     x0, #1
+        adr     x1, newline
+        mov     x2, len_nl
+        mov     x8, #64
+        svc     #0
+
         mov     x0, #0
         mov     x8, #93
         svc     #0
