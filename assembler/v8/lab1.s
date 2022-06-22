@@ -1,54 +1,56 @@
 	.arch armv8-a
+	//(d ∗ a)/(a + b ∗ c) + (d + b)/(e − a)
 	.data
-	.align	3
+	.align	3 // выравнивание по двойному слову (64 бита), т.е по 2^3=8 байтам. адрес выравнивается заполнением нулями. адрес должен быть кратен 8 байтам.
+				// применяется для одного адреса
 res:
-	.skip	8
+	.skip	8 // оставили 8 байт под результат (64 бита)
 a:
-	.4byte	4
+	.4byte	4 // слово
 b:
-	.byte	7
+	.byte	7 // байт
 c:
-	.2byte	3
+	.2byte	3 // полуслово
 d:
 	.4byte	11
 e:
 	.4byte	5
-	.text
+	.text // данные метода/функции
 	.align	2
 	.global	_start
 	.type	_start, %function
 _start:
-	adr x0, a
-	ldr w1,	[x0]
+	adr x0, a // загрузка адреса метки а в регистр х0
+	ldr w1,	[x0] // загрузка слова в w1 из адреса х0. дополнение нулями (беззнаковое)
 	adr x0, b
-	ldrb w2, [x0]
+	ldrb w2, [x0] // загрузка байта
 	adr x0, c
-	ldrh w3, [x0]
+	ldrh w3, [x0] // загрузка полуслова. если еще ldrsh - загрузка знакового слова
 	adr x0, d
 	ldr w4, [x0]
 	adr x0, e
 	ldr w5, [x0]
-    	umull x6, w4, w1 // d*a
+	umull x6, w4, w1 // d*a //  умножение с расширением до 64 бит. беззнаково
 	madd x7, x2, x3, x1 // a+b*c
 	cbz x7, BAD // if a+b*c == 0 exit
-	udiv x6, x6, x7 // d*a/(a+b*c)
-	add x3, x4, x2 // d+b
-	subs w7, w5, w1 // e-a
-	bmi BAD // e-a < 0 exit
+	udiv x6, x6, x7 // d*a/(a+b*c) // деление беззнаковое
+	add x3, x4, x2 // d+b // переполнения не может быть 32+32
+	subs w7, w5, w1 // e-a //s для расстановки флагов (N - negative, Z - zero, C - carry, V - overflow)
+	bmi BAD // e-a < 0 exit | bmi - minus, negative
 	cbz w7, BAD // e-a == 0 exit
 	udiv x7, x3, x7 // (d+b)/(e-a)
-	adds x1, x6, x7 // result
+	adds x1, x6, x7 // result возможно переполнение
 	bcs BAD // unsigned overflow
 	adr x0, res
-	str x1, [x0]
+	str x1, [x0] // сохранить регистр x1 по адресу х0
 	b SUCCES
 CALL:
-	mov x8, #93
-	svc #0
+	mov x8, #93 // системный вызов для завершения программы
+	svc #0 // вызов супервизора // практически как ядро операционной системы, но принимающее запросы от пользователя
 SUCCES:
-	mov x0, #0
+	mov x0, #0 // типа возращаемое значение
 	b CALL
 BAD:
 	mov x0, #1
 	b CALL
-	.size _start, .-_start
+	.size _start, .-_start //вычисляет размер программы (размер функции)
