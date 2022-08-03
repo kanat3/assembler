@@ -1,6 +1,7 @@
 	.arch armv8-a
 //	Sorting columns of matrix by min elements
 //	Try Shell
+//
 	.data
 	.align	3
 n:
@@ -57,33 +58,63 @@ L3:
 	b L4
 L4:
 	// x4 = gap
-	udiv x4, x4, x6
-	cmp	x4, #0
-	ble	L9 // <=
-	mov x7, x4 // i = gap
-	sub x7, x7, #1
+	udiv	x4, x4, x6
+	cmp		x4, #0
+	ble		end // <=
+	mov		x7, x4 // i = gap
+	sub		x7, x7, #1
 L5:
-	add x7, x7, #1
-	adr	x1, m
-	ldr w1, [x1] // load n
-	cmp x7, x1
-	bge L4 // >=
-	b 	L6
+	add		x7, x7, #1
+	adr		x1, m
+	ldr		w1, [x1] // load m
+	cmp		x7, x1
+	bge		L4 // >=
+	b 		L6
 L6:
-	sub x8, x7, x4 //j = i - gap
-	cmp x8, #0
-	blt L5 // <
-	add x9, x8, x4 // j + gap
-	ldr x1, [x3, x8, lsl #3] // arr[j]
-	ldr x2, [x3, x9, lsl #3] // arr[j+gap]
-	cmp x1, x2
-	ble L5// <=
-	str x2, [x3, x8, lsl #3] // arr[j] = arr[j + gap]
-	str x1, [x3, x9, lsl #3]
-	sub x8, x8, x4
-	b L6
-L9:
-	mov	x0, #0
-	mov	x8, #93
-	svc	#0
+	sub		x8, x7, x4 //j = i - gap
+	cmp		x8, #0
+	blt		L5 // <
+	add		x9, x8, x4 // j + gap
+	ldr		x1, [x3, x8, lsl #3] // arr[j]
+	ldr		x2, [x3, x9, lsl #3] // arr[j+gap]
+	cmp		x1, x2
+.ifdef sort
+	ble		L5
+.endif
+.ifdef rsort
+	bge		L5
+.endif
+	// j+gap in x9 | j in x8
+	str 	x2, [x3, x8, lsl #3] // arr[j] = arr[j + gap]
+	str 	x1, [x3, x9, lsl #3]
+	mov 	x13, x2
+	mov 	x14, x1
+	// swap is done
+	mov		x10, #0 // counter for column swap
+	adr		x2, matrix
+	add		x11, x2, x8, lsl #3
+	add		x12, x2, x9, lsl #3
+swap_loop:
+	adr		x1, n
+	ldr		w1, [x1] // load n
+	cmp		x10, x1
+	bge		continue
+	ldr		x13, [x11]
+	ldr		x14, [x12]
+	str 	x13, [x12]
+	str 	x14, [x11]
+	adr		x1, m
+	ldr		w1, [x1] // load m
+	add		x11, x11, x1, lsl #3
+	add		x12, x12, x1, lsl #3
+	add		x10, x10, #1
+	b 		swap_loop
+continue:
+	sub		x8, x8, x4
+	b 		L6
+end:
+	adr		x0, matrix
+	mov		x0, #0
+	mov		x8, #93
+	svc		#0
 	.size	_start, .-_start
