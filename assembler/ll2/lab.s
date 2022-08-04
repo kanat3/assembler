@@ -5,15 +5,16 @@
 	.data
 	.align	3
 n:
-	.word	3
+	.word	4
 m:
-	.word	5
+	.word	6
 matrix:
-	.quad	4, 6, 1, 8, 2
-	.quad	1, 2, 3, 4, 5
-	.quad	0, -7, 3, -1, -1
+	.quad	4, 6, 1, 8, 2, 2
+	.quad	1, 2, 3, 4, 5, 5
+	.quad	0, -7, 3, -1, -1, 5
+	.quad	-11, 33, -6, -7, -10, 5
 maxs:
-	.skip	40
+	.skip	48
 	.text
 	.align	2
 	.global _start
@@ -49,7 +50,7 @@ L2:
 	add	x4, x4, #1
 	b	L0
 L3:
-	sub	x4, x1, #1
+	// no need sub	x4, x1, #1
 	mov	x5, #0
 //*****************************//
 // array length m
