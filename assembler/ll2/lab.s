@@ -50,7 +50,6 @@ L2:
 	add	x4, x4, #1
 	b	L0
 L3:
-	// no need sub	x4, x1, #1
 	mov	x5, #0
 //*****************************//
 // array length m
@@ -70,9 +69,9 @@ L5:
 	ldr		w1, [x1] // load m
 	cmp		x7, x1
 	bge		L4 // >=
-	b 		L6
-L6:
+	//b 		L6
 	sub		x8, x7, x4 //j = i - gap
+L6:
 	cmp		x8, #0
 	blt		L5 // <
 	add		x9, x8, x4 // j + gap
@@ -111,7 +110,7 @@ swap_loop:
 	add		x10, x10, #1
 	b 		swap_loop
 continue:
-	sub		x8, x8, x4
+	sub		x8, x8, x4 // j - gap
 	b 		L6
 end:
 	adr		x0, matrix
