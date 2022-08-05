@@ -6,14 +6,14 @@
 n:
 	.word	4
 m:
-	.word	6
+	.word	7
 matrix:
-	.byte	4, 6, 1, 8, 2, 2
-	.byte	1, 2, 3, 4, 5, 5
-	.byte	0, -7, 3, -1, -1, 5
-	.byte	-11, 33, -6, -7, -10, 5
+	.byte	4, 9, 6, 1, 8, 2, 2
+	.byte	1, 11, 2, 3, 4, 5, 5
+	.byte	0, 44, -7, 3, -1, -1, 5
+	.byte	-11, 90, 33, -6, -7, -10, 5
 maxs:
-	.skip	48 // m*8 bytes (work for quad)
+	.skip	56 // m*8 bytes (work for quad)
 	.text
 	.align	2
 	.global _start
@@ -62,7 +62,7 @@ L4:
 L5:
 	add		w7, w7, #1
 	adr		x1, m
-	ldr		w1, [x1] // load m
+	ldr		w1, [x1]
 	cmp		w7, w1
 	bge		L4
 	sub		w8, w7, w4 //j = i - gap
