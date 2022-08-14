@@ -6,10 +6,10 @@ LD = $(CROSS_COMPILE)ld
 ASFLAGS = -g
 LDFLAGS = -g -static
 
-SRCS = lab.s
+SRCS = v.s
 OBJS = $(SRCS:.s=.o)
 
-EXE = lab
+EXE = v_lab
 
 clean:
 		rm -rf $(EXE) $(OBJS)
