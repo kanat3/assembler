@@ -1,4 +1,11 @@
 // правим беск ввод
+// во-первых данные выводятся вдвух места в зависимости от нахождения в буфере
+// значит надо добавить работу смещения в функции work но она попротит все данные (значит каждый используемый регистр надо сохранить)
+// функция смещения считывает всю строку до символа \0
+// если слово у нас на стыке, то буфер для вывода выглядит немного странно. там на месте разрыва находится \0. а это потит работу алгоса
+// надо проверить как в исходном коде выгдлядит буфер (мб я напутала с индексами). и если так и должно быть, то нужно склеить местро разрыва для
+// загрузки в алгос смещения
+// все хочу спать всем привет
         .arch   armv8-a
         .data
 mes_N:
@@ -96,6 +103,107 @@ _exit:
         //!!!!!!!!!
 
 
+    .type   left_offset, %function
+
+left_offset:
+// в х1 получаем буфер
+// в х0 получаем кол-во букв!
+        adr     x20, N
+        ldrb    w20, [x20]
+        mov     w22, '0'
+        sub     w20, w20, w22
+        mov     x12, #0 // кол-во букв в конкретном слове
+        mov     x3, x1 // по этому указателю пишем буквы
+        mov     x4, x3 // указатель на начало нашего слова в буфере
+        sub     x15, x0, #1// кол-во символов в строке
+        ldrb    w11, [x1, x15, lsl #0] //проверяем последний символ \n или ' '
+        cmp     w11, '\n'
+        mov     x11, #-3 // запомним что надо заменить конец на ' '
+        bne     L0
+        //mov     w22, ' '
+        //strb    w22, [x1, x15, lsl #0] // конец строки имеет вид ' \n'
+        //add     x15, x15, #1
+        strb    wzr, [x1, x15] // обзяательно окончание строки в конце
+        //sub     x15, x15, #1
+        mov     x11, #3 // в конце был \n потом заменим
+        mov     x10, #0
+
+L0:
+        ldrb    w0, [x1], #1 // По х1 смещаемся как по строчке. в х0 символ
+        cbz     w0, L9 // строка закончилась
+        cmp     w0, ' '
+        beq     L0
+        cmp     w0, '\t'
+        beq     L0
+        cmp     x4, x3 // сравнили адреса строк
+        beq     L1
+        mov     w0, ' '
+        strb    w0, [x3], #1
+        b       L1
+L1:
+        sub     x2, x1, #1 //запишем начало слова без пробелов в х2
+        mov     x12, #0
+L2:
+        ldrb    w0, [x1], #1 //идем по слову до пробела
+        add     x12, x12, #1
+        cbz     w0, L3
+        cmp     w0, ' '
+        beq     L3
+        cmp     w0, '\n'
+        beq     L3
+        cmp     w0, '\t'
+        bne     L2
+L3:
+        sub     x12, x12, #1 // размер слова - 1 лежит
+        mov     w21, #0
+L4:
+        cmp     w21, w20 // в w20 лежит N идем по циклу до w21 = w20 L4 -L6
+        bge     L7 // смещение завершено прыгаем на л7
+        add     w21, w21, #1
+        mov     x6, x2 // Положили начало слова
+        ldrb    w7, [x6, #0]! //-1 сохраняем первую букву слова
+        mov     x10, #0 //x12
+L5:
+        cmp     x10, x12 // index < len
+        bgt     L6
+        ldrb    w0, [x6, #1]! // смещаемся на след букву
+        strb    w0, [x2, x10, lsl #0] // делаем смещение в регистре х2 (это наш Out)
+        add     x10, x10, #1 // счетчик
+        cmp     x10, x12 // проверяем счетчик и кол-во букв - 1
+        bgt     L6
+        b       L5
+L6:
+        strb    w7, [x2, x12, lsl #0]
+        b L4
+L7:
+        add     x12, x12, #1 // кол-во буквы в слове
+        sub     x1, x1, #1 // следующий адрес после конца слова
+        mov     x10, #0
+L8:
+        cmp     x10, x12
+        bge     L0 // смещение закончено. обрабатываем след. слово
+        ldrb    w0, [x2, x10, lsl #0]
+        strb    w0, [x3], #1
+        add     x10, x10, #1
+        b       L8
+L9:
+        mov     x0, x4
+        cmp     x11, #3
+        beq     add_end
+        bne     add_space
+add_end:
+        mov     w11, '\n'
+        strb    w11, [x0, x15, lsl #0]
+        b to_ret
+add_space:
+        mov     w11, ' '
+        strb    w11, [x0, x15, lsl #0]
+to_ret:
+        ret
+
+    .size   left_offset, .-left_offset
+
+
 ////
 
     .type   work, %function
@@ -104,8 +212,9 @@ _exit:
     .equ    filename, 16
     .equ    fd, 24
     .equ    buf, 32
+    .equ    correct_result, 40
 work:
-    mov     x16, #48 // buf_size = 16 // buffer
+    mov     x16, #56 // buf_size = 16 // buffer
     sub     sp, sp, x16
     stp     x29, x30, [sp]
     mov     x29, sp
@@ -155,7 +264,12 @@ work:
     bl      correct
 
 // write data to a file
+// здесь лежит строка с некоторым кол-вом слов для обработки (buf)
+    str     x0, [x29, correct_result]
+    add     x1, x29, buf
+    bl      left_offset
     mov     x2, x0
+    ldr     x0, [x29, correct_result]
     ldr     x0, [x29, fd]
     add     x1, x29, buf
     mov     x8, #64
@@ -178,66 +292,11 @@ work:
     mov     x0, #0
 5:
     ldp     x29, x30, [sp]
-    mov     x16, #48
+    mov     x16, #56
     add     sp, sp, x16
     ret
 
     .size   work, .-work
-
-
-
-// хз работает ли чекает букву если число есть то возвращет 0. иначе -1
-        .type   check, %function
-        .data
-numbers:
-        .asciz  "0123456789"
-        .text
-        .align      2
-check:
-        sub     sp, sp, #32
-        strb    w0, [sp, 15] // our symbol
-        cmp     w0, ' '
-        beq     N4
-        cmp     w0, '\t'
-        beq     N4
-        cmp     w0, '\n'
-        beq     N4
-        str     wzr, [sp, 28]
-        mov     w0, -1
-        str     w0, [sp, 24] // out result
-N1:
-        adr    x0, numbers
-        add     x1, x0, #1
-        ldrsw   x0, [sp, 28]
-        ldrb    w0, [x1, x0]
-        cmp     w0, 0
-        beq     N2
-        adr    x0, numbers
-        add     x1, x0, #1
-        ldrsw   x0, [sp, 28]
-        ldrb    w0, [x1, x0]
-        ldrb    w1, [sp, 15]
-        cmp     w1, w0
-        bne     N3
-        str     wzr, [sp, 24]
-N3:
-        ldr     w0, [sp, 28]
-        add     w0, w0, 1
-        str     w0, [sp, 28]
-        b       N1
-N2:
-        ldr     w0, [sp, 24]
-        b   end
-N4:
-        mov     w0, #2 // значит не нужно менять значение метки
-end:
-        add     sp, sp, 32
-        ret // change x1 and x0 !!!!!!!!!1
-
-
-
-/////
-
 
 
     .type   correct, %function
@@ -246,7 +305,6 @@ vowels:
     .asciz  "0123456789"
     .equ    buf_addr, 16
     .equ    fd_out, 24
-    .equ    symbol_ptr, 32
     .text
     .align      2
 correct:
@@ -266,7 +324,6 @@ correct:
 
 skip_space:
     mov     x11, #0 // **
-    mov     w5, #0 // сброс метки
 0:
     ldrb    w3, [x1], #1
     add     x10, x10, #1 //сместились на 1 букву +1
@@ -288,19 +345,8 @@ skip_space:
 // go to the end of another word and compare last symbol
 // and save the beginning of the word
     mov     x6, x1 //вх6 начало слова
-    mov     w5, #0 // пусть у нас сначала 0. перезапишем ее если наткнемся на НЕ цифру
 4:
     ldrb    w3, [x1], #1 // no first symbol ERR аздесь одну букву пропустили
-    str     x1, [x29, symbol_ptr]
-    mov     w0, w3
-    bl      check // func возникнет проблема если наткнулись на пробел и тд тк он не равен цифре и все перезапишется (можно сделать проверку на это в функцци чек)
-    cmp     w0, #-1
-    beq     save_mark
-    b       no_mark
-save_mark:
-    mov     w5, w0 // save result in w5 (-1 - no delete, 0 - yes delete word) // будут ошибка т.к перезапись идет. нужно записывать только 0
-no_mark:
-    ldr     x1, [x29, symbol_ptr]
     add     x10, x10, #1
     add     x11, x11, #1
 
@@ -315,22 +361,12 @@ no_mark:
     cmp     w3, '\t'
     beq     5f
 
-    //mov     w5, w3 не нужно
     b       4b
-// now the last word's symbol is in the w5
-// compare w4 and w5, if they're equal, write this word to the buffer, else go to the next word
+// write this word to the buffer, else go to the next word
 5:
-    //cmp     w4, w5
-    cmp     w5, #-1
-    beq     have_same_symbol // no all number in word
-    cmp     w3, ' '
-    beq     skip_space
-    cmp     w3, '\t'
-    beq     skip_space
-    cmp     w3, '\n'
-    beq     end_of_line
+    b     write_word // write full word
 
-have_same_symbol:
+write_word:
     mov     x1, x6
 
 // write word
