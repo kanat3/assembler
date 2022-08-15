@@ -211,8 +211,8 @@ to_ret:
 // then address of filename, file descriptor and buffer address
     .equ    filename, 16
     .equ    fd, 24
-    .equ    buf, 32
-    .equ    correct_result, 40
+    .equ    correct_result, 32
+    .equ    buf, 40
 work:
     mov     x16, #56 // buf_size = 16 // buffer
     sub     sp, sp, x16
@@ -268,10 +268,9 @@ work:
     str     x0, [x29, correct_result]
     add     x1, x29, buf
     bl      left_offset
-    mov     x2, x0
-    ldr     x0, [x29, correct_result]
+    mov     x1, x0
+    ldr     x2, [x29, correct_result]
     ldr     x0, [x29, fd]
-    add     x1, x29, buf
     mov     x8, #64
     svc     #0
 
