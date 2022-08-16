@@ -108,25 +108,24 @@ _exit:
 left_offset:
 // в х1 получаем буфер
 // в х0 получаем кол-во букв!
+// можем получить слклеенную строку вида <balabla omg'\002'blabla> где 002 код начала полноценного сектора данных
+// поэтому смещение увеличиваем на 1 (кол-во символов на 1 больше)
+// нужно ловить момент, когда символ 2 внутри слова (не в начале или конце) НЕ РЕШЕНО
         adr     x20, N
         ldrb    w20, [x20]
         mov     w22, '0'
         sub     w20, w20, w22
-        mov     x12, #0 // кол-во букв в конкретном слове
+        mov     x17, #0 // кол-во букв в конкретном слове
         mov     x3, x1 // по этому указателю пишем буквы
         mov     x4, x3 // указатель на начало нашего слова в буфере
+        mov     x14, #0
         sub     x15, x0, #1// кол-во символов в строке
-        ldrb    w11, [x1, x15, lsl #0] //проверяем последний символ \n или ' '
-        cmp     w11, '\n'
-        mov     x11, #-3 // запомним что надо заменить конец на ' '
-        bne     L0
-        //mov     w22, ' '
-        //strb    w22, [x1, x15, lsl #0] // конец строки имеет вид ' \n'
-        //add     x15, x15, #1
+        ldrb    w13, [x1, x15, lsl #0] //проверяем последний символ \n или ' '
+        cmp     w13, '\n'
+        mov     x23, #-3 // запомним что надо заменить конец на ' '
         strb    wzr, [x1, x15] // обзяательно окончание строки в конце
-        //sub     x15, x15, #1
-        mov     x11, #3 // в конце был \n потом заменим
-        mov     x10, #0
+        bne     L0
+        mov     x23, #3 // в конце был \n потом заменим
 
 L0:
         ldrb    w0, [x1], #1 // По х1 смещаемся как по строчке. в х0 символ
@@ -142,10 +141,10 @@ L0:
         b       L1
 L1:
         sub     x2, x1, #1 //запишем начало слова без пробелов в х2
-        mov     x12, #0
+        mov     x17, #0
 L2:
         ldrb    w0, [x1], #1 //идем по слову до пробела
-        add     x12, x12, #1
+        add     x17, x17, #1
         cbz     w0, L3
         cmp     w0, ' '
         beq     L3
@@ -154,50 +153,50 @@ L2:
         cmp     w0, '\t'
         bne     L2
 L3:
-        sub     x12, x12, #1 // размер слова - 1 лежит
+        sub     x17, x17, #1 // размер слова - 1 лежит
         mov     w21, #0
 L4:
         cmp     w21, w20 // в w20 лежит N идем по циклу до w21 = w20 L4 -L6
         bge     L7 // смещение завершено прыгаем на л7
         add     w21, w21, #1
-        mov     x6, x2 // Положили начало слова
-        ldrb    w7, [x6, #0]! //-1 сохраняем первую букву слова
-        mov     x10, #0 //x12
+        mov     x18, x2 // Положили начало слова
+        ldrb    w7, [x18, #0]! //-1 сохраняем первую букву слова
+        mov     x14, #0 //x17
 L5:
-        cmp     x10, x12 // index < len
+        cmp     x14, x17 // index < len
         bgt     L6
-        ldrb    w0, [x6, #1]! // смещаемся на след букву
-        strb    w0, [x2, x10, lsl #0] // делаем смещение в регистре х2 (это наш Out)
-        add     x10, x10, #1 // счетчик
-        cmp     x10, x12 // проверяем счетчик и кол-во букв - 1
+        ldrb    w0, [x18, #1]! // смещаемся на след букву
+        strb    w0, [x2, x14, lsl #0] // делаем смещение в регистре х2 (это наш Out)
+        add     x14, x14, #1 // счетчик
+        cmp     x14, x17 // проверяем счетчик и кол-во букв - 1
         bgt     L6
         b       L5
 L6:
-        strb    w7, [x2, x12, lsl #0]
+        strb    w7, [x2, x17, lsl #0]
         b L4
 L7:
-        add     x12, x12, #1 // кол-во буквы в слове
+        add     x17, x17, #1 // кол-во буквы в слове
         sub     x1, x1, #1 // следующий адрес после конца слова
-        mov     x10, #0
+        mov     x14, #0
 L8:
-        cmp     x10, x12
+        cmp     x14, x17
         bge     L0 // смещение закончено. обрабатываем след. слово
-        ldrb    w0, [x2, x10, lsl #0]
+        ldrb    w0, [x2, x14, lsl #0]
         strb    w0, [x3], #1
-        add     x10, x10, #1
+        add     x14, x14, #1
         b       L8
 L9:
         mov     x0, x4
-        cmp     x11, #3
+        cmp     x23, #3
         beq     add_end
         bne     add_space
 add_end:
-        mov     w11, '\n'
-        strb    w11, [x0, x15, lsl #0]
+        mov     w13, '\n'
+        strb    w13, [x0, x15, lsl #0]
         b to_ret
 add_space:
-        mov     w11, ' '
-        strb    w11, [x0, x15, lsl #0]
+        mov     w13, ' '
+        strb    w13, [x0, x15, lsl #0]
 to_ret:
         ret
 
@@ -300,14 +299,14 @@ work:
 
     .type   correct, %function
     .data
-vowels:
-    .asciz  "0123456789"
     .equ    buf_addr, 16
     .equ    fd_out, 24
+    .equ    save_x2, 32
+    .equ    save_x3,40
     .text
     .align      2
 correct:
-    sub     sp, sp, #40
+    sub     sp, sp, #56
     stp     x29, x30, [sp]
     mov     x29, sp
     str     x0, [x29, buf_addr]
@@ -392,19 +391,25 @@ string_more_than_buffer:
 // save address of the beggining of the last word
     sub     x10, x1, x11
 // write data to a file
-    ldr     x0, [x29, fd_out]
+    str     x3, [x29, save_x3]
     ldr     x1, [x29, buf_addr]
-    sub     x2, x2, x1
+    sub     x0, x2, x1
+    str     x0, [x29, save_x2]
+    bl  left_offset
+    mov     x1, x0
+    ldr     x0, [x29, fd_out]
+    ldr     x2, [x29, save_x2]
     mov     x8, #64
     svc     #0
+    ldr     x3, [x29, save_x3]
 // copy part of not whole data to the beginning
     mov     x12, #0
 0:
     cmp     x11, x12
     beq     1f
     ldrb    w3, [x10], #1
-    strb    w3, [x1], #1
     add     x12, x12, #1
+    strb    w3, [x1], #1
     b       0b
 1:
 // read new part of data
@@ -440,7 +445,7 @@ all_ok:
 
     mov     sp, x29
     ldp     x29, x30, [sp]
-    add     sp, sp, #40
+    add     sp, sp, #56
 
     ret
 
