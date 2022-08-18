@@ -419,7 +419,8 @@ string_more_than_buffer:
     strb    w3, [x1], #1
     b       0b
 skip_stx:
-    add     x12, x12, #1
+    //add     x12, x12, #1
+    sub     x11, x11, #1
     b       0b
 1:
 // read new part of data
@@ -432,7 +433,7 @@ skip_stx:
 // init pointers and read data size
     ldr     x1, [x29, buf_addr]
     ldr     x2, [x29, buf_addr]
-    mov     x10, #0
+    mov     x10, #-1 // hz
 
 // and go ahead
     b       skip_space
