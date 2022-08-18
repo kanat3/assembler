@@ -189,249 +189,246 @@ add_space:
         strb    w13, [x0, x15, lsl #0]
 to_ret:
         ret
-
-    .size   left_offset, .-left_offset
-
-
-    .type   work, %function
-    .equ    filename, 16
-    .equ    fd, 24
-    .equ    correct_result, 32
-    .equ    buf, 40
+        .size   left_offset, .-left_offset
+       
+        .type   work, %function
+        .equ    filename, 16
+        .equ    fd, 24
+        .equ    correct_result, 32
+        .equ    buf, 40
 work:
-    mov     x16, #56 // buf_size = 16
-    sub     sp, sp, x16
-    stp     x29, x30, [sp]
-    mov     x29, sp
+        mov     x16, #56 // buf_size = 16
+        sub     sp, sp, x16
+        stp     x29, x30, [sp]
+        mov     x29, sp
 
-    str     x0, [x29, filename]
-    str     x1, [x29, N]
+        str     x0, [x29, filename]
+        str     x1, [x29, N]
 // open file
-    mov     x1, x0
-    mov     x0, #-100
-    mov     x2, #0x201
-    mov     x8, #56
-    svc     #0
+        mov     x1, x0
+        mov     x0, #-100
+        mov     x2, #0x201
+        mov     x8, #56
+        svc     #0
 
-    cmp     x0, #0
-    bge     0f
-    bl      writerr
-    b       4f
-
+        cmp     x0, #0
+        bge     0f
+        bl      writerr
+        b       4f
 0:
-    str     x0, [x29, fd]
+        str     x0, [x29, fd]
 1:
-    mov     x0, #1
-    adr     x1, mes2
-    mov     x2, len2
-    mov     x8, #64
-    svc     #0
+        mov     x0, #1
+        adr     x1, mes2
+        mov     x2, len2
+        mov     x8, #64
+        svc     #0
 // read data
-    mov     x0, #0
-    add     x1, x29, buf
-    mov     x2, #16 // buffer
-    mov     x8, #63
-    svc     #0
+        mov     x0, #0
+        add     x1, x29, buf
+        mov     x2, #16 // buffer
+        mov     x8, #63
+        svc     #0
 
-    cmp     x0, #0
-    beq     4f // EOF
-    bgt     2f // OK
+        cmp     x0, #0
+        beq     4f // EOF
+        bgt     2f // OK
 
 // error
-    ldr     x0, [sp], #16
-    bl      writerr
-    b       3f
+        ldr     x0, [sp], #16
+        bl      writerr
+        b       3f
 
 2:
 // correct the line
-    add     x0, x29, buf // buffer as an argument
-    ldr     x1, [x29, fd] // and fd
-    bl      string_processing
+        add     x0, x29, buf // buffer as an argument
+        ldr     x1, [x29, fd] // and fd
+        bl      string_processing
 
 // write data to a file
 // здесь лежит строка с некоторым кол-вом слов для обработки (buf)
-    str     x0, [x29, correct_result]
-    add     x1, x29, buf
-    bl      left_offset
-    mov     x1, x0
-    ldr     x2, [x29, correct_result]
-    ldr     x0, [x29, fd]
-    mov     x8, #64
-    svc     #0
+        str     x0, [x29, correct_result]
+        add     x1, x29, buf
+        bl      left_offset
+        mov     x1, x0
+        ldr     x2, [x29, correct_result]
+        ldr     x0, [x29, fd]
+        mov     x8, #64
+        svc     #0
 
-    b       1b
+        b       1b
 
 3:
 // close file, got error
-    ldr     x0, [x29, fd]
-    mov     x8, #57
-    svc     #0
-    mov     x0, #1
-    b       5f
+        ldr     x0, [x29, fd]
+        mov     x8, #57
+        svc     #0
+        mov     x0, #1
+        b       5f
 4:
 // close file, all ok
-    ldr     x0, [x29, fd]
-    mov     x8, #57
-    svc     #0
-    mov     x0, #0
+        ldr     x0, [x29, fd]
+        mov     x8, #57
+        svc     #0
+        mov     x0, #0
 5:
-    ldp     x29, x30, [sp]
-    mov     x16, #56
-    add     sp, sp, x16
-    ret
+        ldp     x29, x30, [sp]
+        mov     x16, #56
+        add     sp, sp, x16
+        ret
 
-    .size   work, .-work
+        .size   work, .-work
 
 
-    .type   string_processing, %function
-    .data
-    .equ    buf_addr, 16
-    .equ    fd_out, 24
-    .equ    save_x2, 32
-    .equ    save_x3,40
-    .text
-    .align      2
+        .type   string_processing, %function
+        .data
+        .equ    buf_addr, 16
+        .equ    fd_out, 24
+        .equ    save_x2, 32
+        .equ    save_x3,40
+        .text
+        .align      2
 string_processing:
-    sub     sp, sp, #56
-    stp     x29, x30, [sp]
-    mov     x29, sp
-    str     x0, [x29, buf_addr]
-    str     x1, [x29, fd]
+        sub     sp, sp, #56
+        stp     x29, x30, [sp]
+        mov     x29, sp
+        str     x0, [x29, buf_addr]
+        str     x1, [x29, fd]
 
-    mov     x1, x0 // uncorrected string
-    mov     x2, x0 // corrected string
-    mov     x10, #-1 // counter 2
-    mov     x19, #0 // counter 1
-    b       0f
+        mov     x1, x0 // uncorrected string
+        mov     x2, x0 // corrected string
+        mov     x10, #-1 // counter 2
+        mov     x19, #0 // counter 1
+        b       0f
 
 // skip spaces before the word
 
 skip_space:
-    mov     x11, #0
+        mov     x11, #0
 0:
-    ldrb    w3, [x1], #1
-    add     x10, x10, #1
-    add     x19, x19, #1
-    cmp     x10, #16
-    bge     string_more_than_buffer
+        ldrb    w3, [x1], #1
+        add     x10, x10, #1
+        add     x19, x19, #1
+        cmp     x10, #16
+        bge     string_more_than_buffer
 
-    cmp     w3, ' '
-    beq     0b
-    cmp     w3, '\t'
-    beq     0b
-    cmp     w3, '\n'
-    beq     end_of_line
+        cmp     w3, ' '
+        beq     0b
+        cmp     w3, '\t'
+        beq     0b
+        cmp     w3, '\n'
+        beq     end_of_line
 
-    sub     x1, x1, #1
-    sub     x10, x10, #1
-    sub     x19, x19, #1
+        sub     x1, x1, #1
+        sub     x10, x10, #1
+        sub     x19, x19, #1
 
-    mov     x6, x1
+        mov     x6, x1
 4:
-    ldrb    w3, [x1], #1
-    add     x10, x10, #1
-    add     x11, x11, #1
+        ldrb    w3, [x1], #1
+        add     x10, x10, #1
+        add     x11, x11, #1
 
-    mov     x12, #16
-    cmp     w3, '\n'
-    beq     5f
-    cmp     x10, x12
-    beq     string_more_than_buffer
+        mov     x12, #16
+        cmp     w3, '\n'
+        beq     5f
+        cmp     x10, x12
+        beq     string_more_than_buffer
 
-    cmp     w3, ' '
-    beq     5f
-    cmp     w3, '\t'
-    beq     5f
+        cmp     w3, ' '
+        beq     5f
+        cmp     w3, '\t'
+        beq     5f
 
-    b       4b
+        b       4b
 // write this word to the buffer
 5:
-    mov     x1, x6
+        mov     x1, x6
 
 6:
-    ldrb    w3, [x1], #1
-    cmp     w3, ' '
-    beq     7f
-    cmp     w3, '\t'
-    beq     7f
-    cmp     w3, '\n'
-    beq     end_of_line
+        ldrb    w3, [x1], #1
+        cmp     w3, ' '
+        beq     7f
+        cmp     w3, '\t'
+        beq     7f
+        cmp     w3, '\n'
+        beq     end_of_line
 
-    strb    w3, [x2], #1
-    b       6b
+        strb    w3, [x2], #1
+        b       6b
 
 // and go to the next
 7:
-    mov     w3, ' '
-    strb    w3, [x2], #1
+        mov     w3, ' '
+        strb    w3, [x2], #1
 
-    b       skip_space
+        b       skip_space
 
 string_more_than_buffer:
-    sub     x10, x1, x11
+        sub     x10, x1, x11
 // write data to a file
-    str     x3, [x29, save_x3]
-    ldr     x1, [x29, buf_addr]
-    sub     x0, x2, x1
-    str     x0, [x29, save_x2]
-    bl  left_offset
-    mov     x1, x0
-    ldr     x0, [x29, fd_out]
-    ldr     x2, [x29, save_x2]
-    mov     x8, #64
-    svc     #0
-    ldr     x3, [x29, save_x3]
+        str     x3, [x29, save_x3]
+        ldr     x1, [x29, buf_addr]
+        sub     x0, x2, x1
+        str     x0, [x29, save_x2]
+        bl  left_offset
+        mov     x1, x0
+        ldr     x0, [x29, fd_out]
+        ldr     x2, [x29, save_x2]
+        mov     x8, #64
+        svc     #0
+        ldr     x3, [x29, save_x3]
 // copy part of not whole data to the beginning
-    mov     x12, #0
+        mov     x12, #0
 0:
-    cmp     x11, x12
-    beq     1f
-    ldrb    w3, [x10], #1
-    cmp     w3, #2
-    beq     skip_stx
-    add     x12, x12, #1
-    strb    w3, [x1], #1
-    b       0b
+        cmp     x11, x12
+        beq     1f
+        ldrb    w3, [x10], #1
+        cmp     w3, #2
+        beq     skip_stx
+        add     x12, x12, #1
+        strb    w3, [x1], #1
+        b       0b
 skip_stx:
-    sub     x11, x11, #1
-    b       0b
+        sub     x11, x11, #1
+        b       0b
 1:
 // read new part of data
-    mov     x0, #0
-    mov     x2, #16
-    sub     x2, x2, x11 // 16 - len
-    mov     x8, #63
-    svc     #0
+        mov     x0, #0
+        mov     x2, #16
+        sub     x2, x2, x11 // 16 - len
+        mov     x8, #63
+        svc     #0
 
-    ldr     x1, [x29, buf_addr]
-    ldr     x2, [x29, buf_addr]
-    mov     x10, #-1 // hz
+        ldr     x1, [x29, buf_addr]
+        ldr     x2, [x29, buf_addr]
+        mov     x10, #-1 // hz
 
-    b       skip_space
+        b       skip_space
 
 
 end_of_line:
-    ldr     w3, [x2, #-1]!
-    cmp     w3, ' '
-    bne     all_ok
-    sub     x2, x2, #1
+        ldr     w3, [x2, #-1]!
+        cmp     w3, ' '
+        bne     all_ok
+        sub     x2, x2, #1
 
 all_ok:
-    add     x2, x2, #1
-    mov     w3, '\n'
-    strb    w3, [x2], #1
+        add     x2, x2, #1
+        mov     w3, '\n'
+        strb    w3, [x2], #1
 
-    ldr     x0, [x29, buf_addr]
-    sub     x0, x2, x0 // return size of buffer
+        ldr     x0, [x29, buf_addr]
+        sub     x0, x2, x0 // return size of buffer
 
-    mov     sp, x29
-    ldp     x29, x30, [sp]
-    add     sp, sp, #56
+        mov     sp, x29
+        ldp     x29, x30, [sp]
+        add     sp, sp, #56
 
-    ret
+        ret
 
 
-    .size   string_processing, .-string_processing
+        .size   string_processing, .-string_processing
 
         .type   writerr, %function
 
