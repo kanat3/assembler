@@ -147,22 +147,9 @@ L1:
         sub     x2, x1, #1 //запишем начало слова без пробелов в х2
         mov     x17, #0
         b       L2
-stx_L2:
-        ldrb    w0, [x1], #1 // check next ' '
-        cmp     w0, ' '
-        bne     increase_N
-        cmp     w0, '\t'
-        bne     increase_N
-        b       L3
-increase_N:
-        add     x20, x20, #1
-        sub     x1, x1, #1 // no ' '
-        b       L2
 L2:
         ldrb    w0, [x1], #1 //идем по слову до пробела
         add     x17, x17, #1
-        cmp     w0, #2 // stx
-        beq     stx_L2
         cbz     w0, L3
         cmp     w0, ' '
         beq     L3
@@ -426,8 +413,13 @@ string_more_than_buffer:
     cmp     x11, x12
     beq     1f
     ldrb    w3, [x10], #1
+    cmp     w3, #2
+    beq     skip_stx
     add     x12, x12, #1
     strb    w3, [x1], #1
+    b       0b
+skip_stx:
+    add     x12, x12, #1
     b       0b
 1:
 // read new part of data
