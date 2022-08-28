@@ -22,25 +22,24 @@ CCFLAGS = -g -c -Ofast
 ASFLAGS = -g
 LDFLAGS = -g -static
 
-SRCS = main.c process_img.c process_img_asm.s
-HEAD = process_img.h
-OBJS = main.o process_img.o process_img_asm.o
+SRCS = main.c grey_filter.c grey_filter_asm.s
+HEAD = grey_filter.h
+OBJS = main.o grey_filter.o grey_filter_asm.o
 
 EXE = main
 
 all: $(SRCS) $(EXE)
 
 clean:
-	rm -rf $(EXE) $(OBJS)
+		rm -rf $(EXE) $(OBJS)
 
 $(OBJS): $(HEAD)
 
 $(EXE): $(OBJS)
-	$(LD) $(LDFLAGS) $(LIBPATH) $(PREOBJ) $(OBJS) $(POSTOBJ) -\( $(LIBS) -\) -o $@
+		$(LD) $(LDFLAGS) $(LIBPATH) $(PREOBJ) $(OBJS) $(POSTOBJ) -\( $(LIBS) -\) -o $@
 
 .c.o:
-	$(CC) $(CCFLAGS) $< -o $@
+		$(CC) $(CCFLAGS) $< -o $@
 
 .s.o:
-	$(AS) $(ASFLAGS) $< -o $@
-
+		$(AS) $(ASFLAGS) $< -o $@
