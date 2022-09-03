@@ -1,8 +1,6 @@
+// работает вывод нет смещения
         .arch   armv8-a
         .data
-mes_N:
-        .string "Enter N: "
-        .equ    len_N, .-mes_N
 mes2:
         .string "Enter string (Use Ctrl+D to exit) : "
         .equ    len2, .-mes2
@@ -15,8 +13,6 @@ errmes2:
 newline:
         .string "\n"
         .equ    len_nl, .-newline
-N:
-        .skip   8
         .text
         .align 2
         .global _start
@@ -48,35 +44,7 @@ _start:
         svc     #0
         mov     x0, #-1
         b       _exit
-// read N
 2:
-        mov     x0, #1
-        adr     x1, mes_N
-        mov     x2, len_N
-        mov     x8, #64
-        svc     #0
-
-        mov     x0, #0
-        adr     x1, N
-        mov     x2, len_N
-        mov     x8, #63
-        svc     #0
-        cmp     x0, #2 // N from 1\n to 9\n
-        beq     E2
-        b       E1 // else cases
-E1:
-        mov     x0, #-3
-        bl      writerr
-        b       _exit
-E2:
-        adr     x1, N
-        sub     x0, x0, #1
-        strb    wzr, [x1, x0]
-        ldrb    w20, [x1]
-        mov     w10, '0'
-        sub     w20, w20, w10
-        cmp     w20, #0 // N < 0 ->in err
-        ble     E1
         ldr     x0, [sp, #16] // load filename
         bl work
 _exit:
@@ -90,107 +58,7 @@ _exit:
 
         .size   _start, .-_start
 
-    .type   left_offset, %function
 
-left_offset:
-// в х1 получаем буфер
-// в х0 получаем кол-во букв
-        cmp     x0, #0
-        bne     offset_ok
-        mov     x0, x1
-        b to_ret
-offset_ok:
-        mov     x17, #0
-        mov     x3, x1
-        mov     x4, x3
-        mov     x14, #0
-        sub     x15, x0, #1
-        ldrb    w13, [x1, x15, lsl #0]
-        cmp     w13, '\n'
-        mov     x23, #-3
-        strb    wzr, [x1, x15]
-        bne     L0
-        mov     x23, #3
-        b       L0
-L0:
-        ldrb    w0, [x1], #1
-        cbz     w0, L9
-        cmp     w0, ' '
-        beq     L0
-        cmp     w0, '\t'
-        beq     L0
-        cmp     x4, x3
-        beq     L1
-        mov     w0, ' '
-        strb    w0, [x3], #1
-        b       L1
-L1:
-        adr     x20, N
-        ldrb    w20, [x20]
-        mov     w22, '0'
-        sub     w20, w20, w22
-        sub     x2, x1, #1
-        mov     x17, #0
-        b       L2
-L2:
-        ldrb    w0, [x1], #1
-        add     x17, x17, #1
-        cbz     w0, L3
-        cmp     w0, ' '
-        beq     L3
-        cmp     w0, '\n'
-        beq     L3
-        cmp     w0, '\t'
-        bne     L2
-L3:
-        sub     x17, x17, #1
-        mov     w21, #0
-L4:
-        cmp     w21, w20
-        bge     L7
-        add     w21, w21, #1
-        mov     x18, x2
-        ldrb    w7, [x18, #0]!
-        mov     x14, #0 //x17
-L5:
-        cmp     x14, x17 // index < len
-        bgt     L6
-        ldrb    w0, [x18, #1]!
-        strb    w0, [x2, x14, lsl #0]
-        add     x14, x14, #1
-        cmp     x14, x17
-        bgt     L6
-        b       L5
-L6:
-        strb    w7, [x2, x17, lsl #0]
-        b L4
-L7:
-        add     x17, x17, #1
-        sub     x1, x1, #1
-        mov     x14, #0
-L8:
-        cmp     x14, x17
-        bge     L0
-        ldrb    w0, [x2, x14, lsl #0]
-        strb    w0, [x3], #1
-        add     x14, x14, #1
-        b       L8
-L9:
-        mov     x0, x4
-        cmp     x23, #3
-        beq     add_end
-        bne     add_space
-add_end:
-        mov     w13, '\n'
-        strb    w13, [x0, x15, lsl #0]
-        b to_ret
-add_space:
-        mov     w13, ' '
-        strb    w13, [x0, x15, lsl #0]
-to_ret:
-        ret
-        .size   left_offset, .-left_offset
-       
         .type   work, %function
         .equ    filename, 16
         .equ    fd, 24
@@ -203,7 +71,6 @@ work:
         mov     x29, sp
 
         str     x0, [x29, filename]
-        str     x1, [x29, N]
 // open file
         mov     x1, x0
         mov     x0, #-100
@@ -247,12 +114,9 @@ work:
 
 // write data to a file
 // здесь лежит строка с некоторым кол-вом слов для обработки (buf)
-        str     x0, [x29, correct_result]
-        add     x1, x29, buf
-        bl      left_offset
-        mov     x1, x0
-        ldr     x2, [x29, correct_result]
+        mov     x2, x0
         ldr     x0, [x29, fd]
+        add     x1, x29, buf
         mov     x8, #64
         svc     #0
 
@@ -284,12 +148,10 @@ work:
         .data
         .equ    buf_addr, 16
         .equ    fd_out, 24
-        .equ    save_x2, 32
-        .equ    save_x3,40
         .text
         .align      2
 string_processing:
-        sub     sp, sp, #56
+        sub     sp, sp, #64
         stp     x29, x30, [sp]
         mov     x29, sp
         str     x0, [x29, buf_addr]
@@ -324,7 +186,34 @@ skip_space:
         sub     x19, x19, #1
 
         mov     x6, x1
+        mov     x5, #0
 4:
+
+        ldrb    w3, [x1], #1
+
+        mov     w0, w3 // load symbol for check func
+        bl      check
+        cmp     w0, #-1
+        bne     no_mark
+        mov     w5, w0 // (-1 - no del, 0 - del word)
+no_mark:
+        add     x10, x10, #1
+        add     x11, x11, #1
+
+        mov     x12, #16
+        cmp     w3, '\n'
+        beq     5f
+        cmp     x10, x12
+        beq     string_more_than_buffer
+
+        cmp     w3, ' '
+        beq     5f
+        cmp     w3, '\t'
+        beq     5f
+
+        b       4b
+
+/*
         ldrb    w3, [x1], #1
         add     x10, x10, #1
         add     x11, x11, #1
@@ -341,10 +230,23 @@ skip_space:
         beq     5f
 
         b       4b
+*/
 // write this word to the buffer
 5:
+/*
         mov     x1, x6
+*/
+        cmp     w5, #-1
+        beq     save_word // no number in word
+        cmp     w3, ' '
+        beq     skip_space
+        cmp     w3, '\t'
+        beq     skip_space
+        cmp     w3, '\n'
+        beq     end_of_line
 
+save_word:
+        mov     x1, x6
 6:
         ldrb    w3, [x1], #1
         cmp     w3, ' '
@@ -367,17 +269,11 @@ skip_space:
 string_more_than_buffer:
         sub     x10, x1, x11
 // write data to a file
-        str     x3, [x29, save_x3]
-        ldr     x1, [x29, buf_addr]
-        sub     x0, x2, x1
-        str     x0, [x29, save_x2]
-        bl  left_offset
-        mov     x1, x0
         ldr     x0, [x29, fd_out]
-        ldr     x2, [x29, save_x2]
+        ldr     x1, [x29, buf_addr]
+        sub     x2, x2, x1
         mov     x8, #64
         svc     #0
-        ldr     x3, [x29, save_x3]
 // copy part of not whole data to the beginning
         mov     x12, #0
 0:
@@ -423,15 +319,84 @@ all_ok:
 
         mov     sp, x29
         ldp     x29, x30, [sp]
-        add     sp, sp, #56
+        add     sp, sp, #64
 
         ret
 
-
         .size   string_processing, .-string_processing
 
-        .type   writerr, %function
 
+        .type   check, %function
+        .data
+        .equ    result, 16
+        .equ    index, 24
+        .equ    symbol, 32
+        .equ    cmp_symbol, 40
+        .equ    save_x1, 48
+numbers:
+        .asciz "0123456789"
+        .text
+        .align  2
+check:
+        sub     sp, sp, #64
+        stp     x29, x30, [sp]
+        mov     x29, sp
+        str     x1, [x29, save_x1]
+        strb    w0, [sp, symbol]
+        mov     w0, #-1
+        str     w0, [sp, result]
+        str     wzr, [sp, index]
+        ldrb    w0, [sp, symbol]
+        cmp     w0, #32
+        beq     L2
+        ldrb    w0, [sp, symbol]
+        cmp     w0, #10 // '\n'
+        beq     L2
+        ldrb    w0, [sp, symbol]
+        cmp     w0, #0 // '\0'
+        beq     L2
+        ldrb    w0, [sp, symbol]
+        cmp     w0, #9 // '\t'
+        bne     L3
+L2:
+        mov     w0, #2
+        str     w0, [sp, result]
+        ldr     w0, [sp, result]
+        b       L4
+L3:
+        adr     x1, numbers
+        ldrb    w0, [x1], #1
+        strb    w0, [sp, cmp_symbol]
+        mov     x0, #0
+        str     x0, [sp, index]
+L7:
+        ldrb    w0, [sp, cmp_symbol]
+        cmp     w0, #0
+        beq     L5
+        adr     x0, numbers
+        ldr     x1, [sp, index]
+        ldrb    w0, [x0, x1]
+        strb    w0, [sp, cmp_symbol]
+        add     x1, x1, #1
+        str     x1, [sp, index]
+        ldrb    w1, [sp, cmp_symbol]
+        ldrb    w0, [sp, symbol]
+        cmp     w1, w0
+        bne     L7
+        str     wzr, [sp, result]
+        b       L5
+L5:
+        ldr     w0, [sp, result]
+L4:
+        ldr     x1, [x29, save_x1]
+        mov     sp, x29
+        ldp     x29, x30, [sp]
+        add     sp, sp, #64
+        ret
+        .size   check, .-check
+
+
+        .type   writerr, %function
         .data
     nofile:
         .string "No such file or directory"
@@ -445,10 +410,8 @@ all_ok:
     unknown:
         .string "Unknown error"
         .equ    unknownlen, .-unknown
-
         .text
         .align 2
-
 writerr:
         cmp     x0, #-2
         bne     0f
