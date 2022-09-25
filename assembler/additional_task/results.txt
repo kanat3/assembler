@@ -1,0 +1,34 @@
+5600x3733px
+1) 0fast
+	C Time 6.82812
+	Asm Time 8.53125
+2) O0
+	C Time 8.4375
+	Asm Time: 8.70312
+3) O1
+	C Time: 6.90625
+	Asm Time: 8.46875
+4) O2
+	C Time:	6.125
+	Asm Time: 9.54688
+5) O3
+	C Time: 6.59375
+	Asm Time: 8.5
+960x960px
+1) 0fast
+	C Time 0.296875
+	Asm Time 0.35
+2) O0
+	C Time 0.375
+	Asm Time: 0.375
+3) O1
+	C Time: 0.3125
+	Asm Time: 0.375
+4) O2
+	C Time:	0.265625
+	Asm Time: 0.375
+5) O3
+	C Time: 0.28125
+	Asm Time: 0.359375
+
+
